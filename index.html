@@ -48,7 +48,7 @@
   </div>
 
 <script>
-const WEBHOOK_URL = 'https://<n8n-domain>/webhook/checkin';
+const WEBHOOK_URL = 'https://flysapa.app.n8n.cloud/webhook/checkin';
 const tg = Telegram.WebApp; tg.ready(); tg.expand();
 const $ = id => document.getElementById(id);
 const setState = (s, m='') => { document.body.dataset.state = s; $('msg').textContent = m; };
