@@ -110,7 +110,7 @@ $('send').onclick = async () => {
     const j = await r.json();
     if(!r.ok || !j.ok) throw new Error(j.error || 'Lỗi');
     stream && stream.getTracks().forEach(t => t.stop());
-    setState('done', `✅ Đã ${LABEL[type]} lúc ${j.time}`);
+   setState('done', `✅ Đã ${LABEL[type]} lúc ${j.time || new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })}`);
     setTimeout(() => tg.close(), 1500);
   }catch(e){
     $('send').disabled = false; $('msg').textContent = '❌ Gửi thất bại: ' + e.message;
