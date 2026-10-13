@@ -16,6 +16,9 @@
   body{display:flex;flex-direction:column;gap:12px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
        background:var(--bg);color:var(--tx);font-family:-apple-system,system-ui,sans-serif}
   h1{font-size:17px;text-align:center;margin:4px 0}
+  .modes{display:flex;gap:4px;padding:4px;border-radius:14px;background:var(--sec)}
+  .modes button{flex:1;font-size:15px;padding:10px;border-radius:11px;background:transparent;color:var(--hint);font-weight:600}
+  .modes button.active{background:var(--btn);color:var(--btx)}
   .stage{flex:1;min-height:0;border-radius:16px;background:var(--sec);overflow:hidden;position:relative;
          display:flex;align-items:center;justify-content:center}
   video,img{width:100%;height:100%;object-fit:cover}
@@ -31,35 +34,57 @@
   [data-state="loading"] .r1, [data-state="done"] #v, [data-state="error"] #v, [data-state="error"] #img,
   [data-state="error"] .r2, [data-state="error"] .r1 {display:none}
   [data-state="live"] #ph, [data-state="preview"] #ph, [data-state="done"] #ph{display:none}
+  /* Chỉ cho đổi loại khi chưa chụp / chưa gửi */
+  [data-state="preview"] .modes, [data-state="done"] .modes, [data-state="error"] .modes{display:none}
 </style>
 </head>
 <body data-state="loading">
   <h1>Fly Sapa Attendance</h1>
+  <div class="modes" id="modes">
+    <button type="button" data-type="checkin" class="active">🟢 Check-in</button>
+    <button type="button" data-type="checkout">🔴 Check-out</button>
+  </div>
   <div class="stage">
     <video id="v" autoplay playsinline muted></video>
     <img id="img" alt="">
     <div id="ph">📷<br>Camera sẽ hoạt động khi cấp quyền</div>
   </div>
   <div id="msg"></div>
-  <div class="row r1"><button id="shoot" disabled>📸 Chụp ảnh chấm công</button></div>
+  <div class="row r1"><button id="shoot" disabled>📸 Chụp ảnh check-in</button></div>
   <div class="row r2">
     <button id="retake" class="sec">Chụp lại</button>
-    <button id="send">Gửi chấm công</button>
+    <button id="send">Gửi check-in</button>
   </div>
 
 <script>
 const WEBHOOK_URL = 'https://flysapa.app.n8n.cloud/webhook/checkin';
 const tg = Telegram.WebApp; tg.ready(); tg.expand();
 const $ = id => document.getElementById(id);
+const LABEL = { checkin: 'check-in', checkout: 'check-out' };
+let stream, photo, type = 'checkin';
+
 const setState = (s, m='') => { document.body.dataset.state = s; $('msg').textContent = m; };
-let stream, photo;
+const liveMsg = () => `Nhìn vào camera rồi bấm chụp (${LABEL[type]})`;
+
+function setType(t){
+  type = t;
+  document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('active', b.dataset.type === t));
+  $('shoot').textContent = '📸 Chụp ảnh ' + LABEL[t];
+  $('send').textContent  = 'Gửi ' + LABEL[t];
+  if (document.body.dataset.state === 'live') $('msg').textContent = liveMsg();
+}
+document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setType(b.dataset.type));
+
+// Cho phép mở thẳng chế độ qua link: ?type=checkout (hoặc start_param của Telegram)
+const q = new URLSearchParams(location.search).get('type') || tg.initDataUnsafe?.start_param;
+if (q === 'checkout' || q === 'checkin') setType(q);
 
 async function startCamera(){
   if (!tg.initData) return setState('error', 'Hãy mở trang này từ Telegram (nút Chấm công trong group).');
   try{
     stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false});
     $('v').srcObject = stream; $('shoot').disabled = false;
-    setState('live', 'Nhìn vào camera rồi bấm chụp');
+    setState('live', liveMsg());
   }catch(e){
     setState('error', 'Không mở được camera. Hãy cấp quyền camera cho Telegram trong cài đặt điện thoại.');
   }
@@ -72,23 +97,24 @@ $('shoot').onclick = () => {
   c.getContext('2d').drawImage(v,0,0,c.width,c.height);
   photo = c.toDataURL('image/jpeg', .7);
   $('img').src = photo;
-  setState('preview', 'Kiểm tra ảnh rồi bấm gửi');
+  setState('preview', `Kiểm tra ảnh rồi bấm gửi ${LABEL[type]}`);
 };
 
-$('retake').onclick = () => setState('live', 'Nhìn vào camera rồi bấm chụp');
+$('retake').onclick = () => setState('live', liveMsg());
 
 $('send').onclick = async () => {
   $('send').disabled = true; $('msg').textContent = 'Đang gửi...';
   try{
     const r = await fetch(WEBHOOK_URL, {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({initData: tg.initData, image: photo})});
+      body: JSON.stringify({initData: tg.initData, image: photo, type})});
     const j = await r.json();
     if(!r.ok || !j.ok) throw new Error(j.error || 'Lỗi');
     stream && stream.getTracks().forEach(t => t.stop());
-    setState('done', '✅ Đã chấm công lúc ' + j.time);
+    setState('done', `✅ Đã ${LABEL[type]} lúc ${j.time}`);
     setTimeout(() => tg.close(), 1500);
   }catch(e){
     $('send').disabled = false; $('msg').textContent = '❌ Gửi thất bại: ' + e.message;
+    setState('preview', '❌ Gửi thất bại: ' + e.message);
   }
 };
 
