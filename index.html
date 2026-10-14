@@ -269,7 +269,15 @@ $('shoot').onclick = () => {
     return;
   }
 
-  $('attendance-camera').click();
+  const input = $('attendance-camera');
+
+  // Dùng cùng cấu hình chụp ảnh trên iPhone và Android
+  input.setAttribute('capture', 'user');
+
+  // Xóa ảnh cũ để có thể chụp ảnh mới
+  input.value = '';
+
+  input.click();
 };
 
 $('attendance-camera').onchange = async event => {
