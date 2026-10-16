@@ -3,214 +3,380 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+>
+
 <title>Fly Sapa Attendance</title>
+
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
-  :root {
-    --bg: var(--tg-theme-bg-color, #fff);
-    --tx: var(--tg-theme-text-color, #111);
-    --hint: var(--tg-theme-hint-color, #777);
-    --btn: var(--tg-theme-button-color, #2481cc);
-    --btx: var(--tg-theme-button-text-color, #fff);
-    --sec: var(--tg-theme-secondary-bg-color, #f2f2f2);
-  }
 
-  * { box-sizing: border-box; }
+:root{
+  --bg:var(--tg-theme-bg-color,#fff);
+  --tx:var(--tg-theme-text-color,#111);
+  --hint:var(--tg-theme-hint-color,#777);
+  --btn:var(--tg-theme-button-color,#2481cc);
+  --btx:var(--tg-theme-button-text-color,#fff);
+  --sec:var(--tg-theme-secondary-bg-color,#f2f2f2);
+}
 
-  html, body {
-    height: 100%;
-    margin: 0;
-  }
+*{
+  box-sizing:border-box;
+}
 
-  body {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-    background: var(--bg);
-    color: var(--tx);
-    font-family: -apple-system, system-ui, sans-serif;
-  }
+html,
+body{
+  height:100%;
+  margin:0;
+}
 
-  h1 {
-    font-size: 17px;
-    text-align: center;
-    margin: 4px 0;
-  }
+body{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
 
-  .modes {
-    display: flex;
-    gap: 4px;
-    padding: 4px;
-    border-radius: 14px;
-    background: var(--sec);
-  }
+  padding:
+    12px
+    16px
+    calc(12px + env(safe-area-inset-bottom));
 
-  .modes button {
-    flex: 1;
-    font-size: 15px;
-    padding: 10px;
-    border-radius: 11px;
-    background: transparent;
-    color: var(--hint);
-    font-weight: 600;
-  }
+  background:var(--bg);
+  color:var(--tx);
 
-  .modes button.active {
-    background: var(--btn);
-    color: var(--btx);
-  }
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+}
 
-  .stage {
-    flex: 1;
-    min-height: 220px;
-    border-radius: 16px;
-    background: var(--sec);
-    overflow: hidden;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+h1{
+  font-size:17px;
+  text-align:center;
+  margin:4px 0;
+}
 
-  #img, #android-camera {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+/* =========================
+   CHECK-IN / CHECK-OUT
+========================= */
 
-  #android-camera {
-    display: none;
-  }
+.modes{
+  display:flex;
+  gap:4px;
+  padding:4px;
+  border-radius:14px;
+  background:var(--sec);
+}
 
-  .stage.android-camera-active #android-camera {
-    display: block;
-  }
+.modes button{
+  flex:1;
+  font-size:15px;
+  padding:10px;
+  border-radius:11px;
+  background:transparent;
+  color:var(--hint);
+  font-weight:600;
+}
 
-  .stage.android-camera-active #img,
-  .stage.android-camera-active #ph {
-    display: none;
-  }
+.modes button.active{
+  background:var(--btn);
+  color:var(--btx);
+}
 
-  #ph {
-    position: absolute;
-    text-align: center;
-    color: var(--hint);
-    padding: 24px;
-    line-height: 1.7;
-  }
+/* =========================
+   CAMERA AREA
+========================= */
 
-  #msg {
-    text-align: center;
-    color: var(--hint);
-    font-size: 14px;
-    min-height: 20px;
-    overflow-wrap: anywhere;
-  }
+.stage{
+  flex:1;
+  min-height:220px;
 
-  .row {
-    display: flex;
-    gap: 10px;
-  }
+  border-radius:16px;
+  background:var(--sec);
 
-  button {
-    flex: 1;
-    font-size: 17px;
-    padding: 14px;
-    border: 0;
-    border-radius: 14px;
-    background: var(--btn);
-    color: var(--btx);
-  }
+  overflow:hidden;
+  position:relative;
 
-  button.sec {
-    background: var(--sec);
-    color: var(--tx);
-  }
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
 
-  button:disabled {
-    opacity: .5;
-  }
+#img,
+#android-camera{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
 
-  /* Camera input chỉ được gọi bằng nút Chụp ảnh */
-  #attendance-camera {
-    display: none;
-  }
+/* Android camera */
 
-  /* Trạng thái chờ chụp */
-  [data-state="live"] #img,
-  [data-state="loading"] #img,
-  [data-state="error"] #img {
-    display: none;
-  }
+#android-camera{
+  display:none;
+}
 
-  /* Trạng thái xem trước */
-  [data-state="preview"] #ph,
-  [data-state="done"] #ph {
-    display: none;
-  }
+/* Khi Android camera đang hoạt động */
 
-  [data-state="preview"] #android-camera,
-  [data-state="done"] #android-camera,
-  [data-state="error"] #android-camera {
-    display: none;
-  }
+.stage.android-camera-active #android-camera{
+  display:block;
+}
 
-  /* Hiện/ẩn nút theo trạng thái */
-  [data-state="live"] .r2,
-  [data-state="loading"] .r1,
-  [data-state="loading"] .r2,
-  [data-state="preview"] .r1,
-  [data-state="done"] .r1,
-  [data-state="done"] .r2,
-  [data-state="error"] .r1,
-  [data-state="error"] .r2 {
-    display: none;
-  }
+.stage.android-camera-active #img,
+.stage.android-camera-active #ph{
+  display:none;
+}
 
-  [data-state="preview"] .modes,
-  [data-state="done"] .modes,
-  [data-state="error"] .modes {
-    display: none;
-  }
+/* Camera trước Android: mirror */
+
+.stage.android-front #android-camera{
+  transform:scaleX(-1);
+}
+
+/* Camera sau Android */
+
+.stage.android-back #android-camera{
+  transform:none;
+}
+
+#ph{
+  position:absolute;
+
+  text-align:center;
+  color:var(--hint);
+
+  padding:24px;
+
+  line-height:1.7;
+}
+
+#msg{
+  text-align:center;
+  color:var(--hint);
+
+  font-size:14px;
+  min-height:20px;
+
+  overflow-wrap:anywhere;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
+.row{
+  display:flex;
+  gap:10px;
+}
+
+button{
+  flex:1;
+
+  font-size:17px;
+  padding:14px;
+
+  border:0;
+  border-radius:14px;
+
+  background:var(--btn);
+  color:var(--btx);
+}
+
+button.sec{
+  background:var(--sec);
+  color:var(--tx);
+}
+
+button:disabled{
+  opacity:.5;
+}
+
+/* =========================
+   CAMERA SWITCH BUTTON
+========================= */
+
+#switch-camera{
+  flex:0 0 auto;
+  width:58px;
+
+  font-size:20px;
+  padding:14px 8px;
+}
+
+/* =========================
+   IPHONE CAMERA INPUT
+========================= */
+
+#attendance-camera{
+  display:none;
+}
+
+/* =========================
+   STATE: LIVE
+========================= */
+
+[data-state="live"] #img,
+[data-state="loading"] #img,
+[data-state="error"] #img{
+  display:none;
+}
+
+/* =========================
+   STATE: PREVIEW
+========================= */
+
+[data-state="preview"] #ph,
+[data-state="done"] #ph{
+  display:none;
+}
+
+[data-state="preview"] #android-camera,
+[data-state="done"] #android-camera,
+[data-state="error"] #android-camera{
+  display:none;
+}
+
+/* =========================
+   BUTTON VISIBILITY
+========================= */
+
+[data-state="live"] .r2,
+[data-state="loading"] .r1,
+[data-state="loading"] .r2,
+[data-state="preview"] .r1,
+[data-state="done"] .r1,
+[data-state="done"] .r2,
+[data-state="error"] .r1,
+[data-state="error"] .r2{
+  display:none;
+}
+
+/* Hide modes after photo */
+
+[data-state="preview"] .modes,
+[data-state="done"] .modes,
+[data-state="error"] .modes{
+  display:none;
+}
+
 </style>
 </head>
+
 
 <body data-state="loading">
 
 <h1>Fly Sapa Attendance</h1>
 
+
+<!-- =========================
+     CHECK-IN / CHECK-OUT
+========================= -->
+
 <div class="modes" id="modes">
-  <button type="button" data-type="checkin" class="active">
+
+  <button
+    type="button"
+    data-type="checkin"
+    class="active"
+  >
     🟢 Check-in
   </button>
-  <button type="button" data-type="checkout">
+
+  <button
+    type="button"
+    data-type="checkout"
+  >
     🔴 Check-out
   </button>
+
 </div>
 
+
+<!-- =========================
+     CAMERA
+========================= -->
+
 <div class="stage" id="stage">
-  <video id="android-camera" autoplay playsinline muted></video>
-  <img id="img" alt="Ảnh chấm công">
+
+  <video
+    id="android-camera"
+    autoplay
+    playsinline
+    muted
+  ></video>
+
+  <img
+    id="img"
+    alt="Ảnh chấm công"
+  >
 
   <div id="ph">
     📷<br>
     Nhấn nút bên dưới để chụp ảnh chấm công
   </div>
+
 </div>
+
 
 <div id="msg"></div>
 
+
+<!-- =========================
+     CAMERA CONTROL
+========================= -->
+
 <div class="row r1">
-  <button id="shoot" type="button">📸 Chụp ảnh check-in</button>
+
+  <button
+    id="switch-camera"
+    type="button"
+    class="sec"
+    aria-label="Đổi camera"
+  >
+    🔄
+  </button>
+
+  <button
+    id="shoot"
+    type="button"
+  >
+    📸 Chụp ảnh check-in
+  </button>
+
 </div>
 
+
+<!-- =========================
+     PREVIEW CONTROL
+========================= -->
+
 <div class="row r2">
-  <button id="retake" type="button" class="sec">Chụp lại</button>
-  <button id="send" type="button">Gửi check-in</button>
+
+  <button
+    id="retake"
+    type="button"
+    class="sec"
+  >
+    Chụp lại
+  </button>
+
+  <button
+    id="send"
+    type="button"
+  >
+    Gửi check-in
+  </button>
+
 </div>
+
+
+<!-- =========================
+     IPHONE CAMERA INPUT
+========================= -->
 
 <input
   id="attendance-camera"
@@ -219,243 +385,666 @@
   capture="user"
 />
 
+
 <script>
+
+/* ============================================================
+   CONFIG
+============================================================ */
+
 const WEBHOOK_URL =
   'https://flysapa.app.n8n.cloud/webhook/checkin';
 
+
+/* ============================================================
+   TELEGRAM
+============================================================ */
+
 const tg = window.Telegram.WebApp;
+
 tg.ready();
 tg.expand();
 
-const $ = id => document.getElementById(id);
+
+/* ============================================================
+   HELPERS
+============================================================ */
+
+const $ = id =>
+  document.getElementById(id);
+
 
 const LABEL = {
   checkin: 'check-in',
   checkout: 'check-out'
 };
 
-const isAndroid = /Android/i.test(navigator.userAgent);
+
+/* ============================================================
+   DEVICE
+============================================================ */
+
+const isAndroid =
+  /Android/i.test(navigator.userAgent);
+
+
+/* ============================================================
+   STATE
+============================================================ */
 
 let photo = null;
+
 let type = 'checkin';
+
 let busy = false;
+
 let androidStream = null;
+
 let androidCameraReady = false;
+
 let cameraStarting = false;
 
-const setState = (state, message = '') => {
+
+/*
+  user        = camera trước
+  environment = camera sau
+*/
+
+let cameraFacing = 'user';
+
+
+/* ============================================================
+   STATE UI
+============================================================ */
+
+const setState = (
+  state,
+  message = ''
+) => {
+
   document.body.dataset.state = state;
+
   $('msg').textContent = message;
+
 };
 
-function updateShootLabel() {
-  if (isAndroid && !androidCameraReady) {
-    $('shoot').textContent = '📷 Mở camera ' + LABEL[type];
-  } else {
-    $('shoot').textContent = '📸 Chụp ảnh ' + LABEL[type];
+
+/* ============================================================
+   UPDATE CAMERA BUTTON
+============================================================ */
+
+function updateCameraUI(){
+
+  const switchButton =
+    $('switch-camera');
+
+  if(cameraFacing === 'user'){
+
+    switchButton.textContent = '🔄';
+
+    switchButton.setAttribute(
+      'aria-label',
+      'Đổi sang camera sau'
+    );
+
+  }else{
+
+    switchButton.textContent = '🔄';
+
+    switchButton.setAttribute(
+      'aria-label',
+      'Đổi sang camera trước'
+    );
+
   }
+
 }
 
-function showLive(message) {
-  $('img').removeAttribute('src');
-  $('shoot').disabled = false;
-  updateShootLabel();
-  setState('live', message || 'Sẵn sàng chấm công.');
+
+/* ============================================================
+   UPDATE SHOOT BUTTON
+============================================================ */
+
+function updateShootLabel(){
+
+  if(
+    isAndroid &&
+    !androidCameraReady
+  ){
+
+    $('shoot').textContent =
+      '📷 Mở camera ' + LABEL[type];
+
+  }else{
+
+    $('shoot').textContent =
+      '📸 Chụp ảnh ' + LABEL[type];
+
+  }
+
 }
 
-function setType(newType) {
+
+/* ============================================================
+   SET TYPE
+============================================================ */
+
+function setType(newType){
+
   type = newType;
 
-  document.querySelectorAll('#modes button').forEach(button => {
-    button.classList.toggle(
-      'active',
-      button.dataset.type === newType
-    );
-  });
+  document
+    .querySelectorAll('#modes button')
+    .forEach(button => {
 
-  updateShootLabel();
-  $('send').textContent = 'Gửi ' + LABEL[type];
-
-  if (document.body.dataset.state === 'live') {
-    $('msg').textContent = isAndroid && !androidCameraReady
-      ? 'Nhấn mở camera để chụp ảnh ' + LABEL[type]
-      : 'Nhìn vào camera rồi chụp ảnh ' + LABEL[type];
-  }
-}
-
-document.querySelectorAll('#modes button').forEach(button => {
-  button.onclick = () => {
-    if (busy) return;
-    setType(button.dataset.type);
-  };
-});
-
-// Hỗ trợ ?type=checkout hoặc start_param của Telegram.
-const queryType =
-  new URLSearchParams(location.search).get('type') ||
-  tg.initDataUnsafe?.start_param;
-
-if (queryType === 'checkout' || queryType === 'checkin') {
-  setType(queryType);
-}
-
-// Dừng camera Android và giải phóng tài nguyên.
-function stopAndroidCamera() {
-  if (androidStream) {
-    androidStream.getTracks().forEach(track => track.stop());
-  }
-
-  androidStream = null;
-  androidCameraReady = false;
-  cameraStarting = false;
-
-  const video = $('android-camera');
-  video.pause();
-  video.srcObject = null;
-
-  $('stage').classList.remove('android-camera-active');
-  updateShootLabel();
-}
-
-// Chờ video thực sự có kích thước khung hình.
-function waitForVideo(video, timeoutMs = 10000) {
-  return new Promise((resolve, reject) => {
-    let finished = false;
-    let timer;
-
-    const cleanup = () => {
-      clearTimeout(timer);
-      video.removeEventListener('loadedmetadata', check);
-      video.removeEventListener('loadeddata', check);
-      video.removeEventListener('canplay', check);
-    };
-
-    const finish = (error) => {
-      if (finished) return;
-      finished = true;
-      cleanup();
-
-      if (error) reject(error);
-      else resolve();
-    };
-
-    const check = () => {
-      if (
-        video.videoWidth > 0 &&
-        video.videoHeight > 0 &&
-        video.readyState >= 2
-      ) {
-        finish();
-      }
-    };
-
-    video.addEventListener('loadedmetadata', check);
-    video.addEventListener('loadeddata', check);
-    video.addEventListener('canplay', check);
-
-    timer = setTimeout(() => {
-      finish(new Error('Camera khởi động quá lâu. Hãy thử lại.'));
-    }, timeoutMs);
-
-    check();
-  });
-}
-
-// Mở camera trực tiếp trên Android.
-async function openAndroidCamera() {
-  if (cameraStarting || androidCameraReady || busy) return;
-
-  cameraStarting = true;
-  $('shoot').disabled = true;
-  setState('loading', 'Đang mở camera...');
-
-  try {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error(
-        'Telegram không hỗ trợ mở camera trực tiếp. ' +
-        'Hãy kiểm tra phiên bản Telegram và quyền camera.'
+      button.classList.toggle(
+        'active',
+        button.dataset.type === newType
       );
-    }
 
-    androidStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: 'environment' }
-      },
-      audio: false
     });
 
-    const video = $('android-camera');
-    video.srcObject = androidStream;
 
-    $('stage').classList.add('android-camera-active');
+  updateShootLabel();
 
-    await video.play();
-    await waitForVideo(video);
 
-    androidCameraReady = true;
-    cameraStarting = false;
+  $('send').textContent =
+    'Gửi ' + LABEL[type];
 
-    updateShootLabel();
-    $('shoot').disabled = false;
 
-    setState(
-      'live',
-      'Camera đã sẵn sàng. Nhìn vào camera rồi bấm Chụp ảnh.'
-    );
-  } catch (error) {
-    stopAndroidCamera();
-    $('shoot').disabled = false;
+  if(
+    document.body.dataset.state === 'live'
+  ){
 
-    setState(
-      'live',
-      '❌ Không mở được camera: ' + error.message +
-      ' Hãy kiểm tra quyền camera của Telegram.'
-    );
+    $('msg').textContent =
+      isAndroid && !androidCameraReady
+
+        ? 'Nhấn Mở camera để chụp ảnh ' +
+          LABEL[type]
+
+        : 'Nhìn vào camera rồi chụp ảnh ' +
+          LABEL[type];
+
   }
+
 }
 
-// Chuẩn hóa ảnh thành JPEG để gửi lên webhook.
-async function normalizeImage(dataUrl) {
-  const image = await new Promise((resolve, reject) => {
-    const img = new Image();
 
-    img.onload = () => {
-      if (!img.naturalWidth || !img.naturalHeight) {
-        reject(new Error('Ảnh không có kích thước hợp lệ.'));
-      } else {
-        resolve(img);
-      }
+/* ============================================================
+   CHECK-IN / CHECK-OUT BUTTON
+============================================================ */
+
+document
+  .querySelectorAll('#modes button')
+  .forEach(button => {
+
+    button.onclick = () => {
+
+      if(busy) return;
+
+      setType(
+        button.dataset.type
+      );
+
     };
 
-    img.onerror = () => {
-      reject(new Error(
-        'Không đọc được ảnh. Hãy chụp lại bằng camera.'
-      ));
-    };
-
-    img.src = dataUrl;
   });
 
-  const scale = Math.min(
-    1,
-    1024 / Math.max(image.naturalWidth, image.naturalHeight)
-  );
 
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(
-    1,
-    Math.round(image.naturalWidth * scale)
-  );
-  canvas.height = Math.max(
-    1,
-    Math.round(image.naturalHeight * scale)
-  );
+/* ============================================================
+   START PARAM
+============================================================ */
 
-  const context = canvas.getContext('2d');
+const queryType =
 
-  if (!context) {
-    throw new Error('Không thể xử lý ảnh trên thiết bị này.');
+  new URLSearchParams(
+    location.search
+  ).get('type')
+
+  ||
+
+  tg.initDataUnsafe?.start_param;
+
+
+if(
+  queryType === 'checkout' ||
+  queryType === 'checkin'
+){
+
+  setType(queryType);
+
+}
+
+
+/* ============================================================
+   STOP ANDROID CAMERA
+============================================================ */
+
+function stopAndroidCamera(){
+
+  if(androidStream){
+
+    androidStream
+      .getTracks()
+      .forEach(track => track.stop());
+
   }
+
+
+  androidStream = null;
+
+  androidCameraReady = false;
+
+  cameraStarting = false;
+
+
+  const video =
+    $('android-camera');
+
+
+  video.pause();
+
+  video.srcObject = null;
+
+
+  $('stage')
+    .classList.remove(
+      'android-camera-active',
+      'android-front',
+      'android-back'
+    );
+
+
+  updateShootLabel();
+
+}
+
+
+/* ============================================================
+   WAIT FOR VIDEO
+============================================================ */
+
+function waitForVideo(
+  video,
+  timeoutMs = 10000
+){
+
+  return new Promise(
+    (resolve, reject) => {
+
+      let finished = false;
+
+      let timer;
+
+
+      const cleanup = () => {
+
+        clearTimeout(timer);
+
+        video.removeEventListener(
+          'loadedmetadata',
+          check
+        );
+
+        video.removeEventListener(
+          'loadeddata',
+          check
+        );
+
+        video.removeEventListener(
+          'canplay',
+          check
+        );
+
+      };
+
+
+      const finish = error => {
+
+        if(finished) return;
+
+        finished = true;
+
+        cleanup();
+
+
+        if(error){
+
+          reject(error);
+
+        }else{
+
+          resolve();
+
+        }
+
+      };
+
+
+      const check = () => {
+
+        if(
+          video.videoWidth > 0 &&
+          video.videoHeight > 0 &&
+          video.readyState >= 2
+        ){
+
+          finish();
+
+        }
+
+      };
+
+
+      video.addEventListener(
+        'loadedmetadata',
+        check
+      );
+
+      video.addEventListener(
+        'loadeddata',
+        check
+      );
+
+      video.addEventListener(
+        'canplay',
+        check
+      );
+
+
+      timer = setTimeout(
+        () => {
+
+          finish(
+            new Error(
+              'Camera khởi động quá lâu. Hãy thử lại.'
+            )
+          );
+
+        },
+        timeoutMs
+      );
+
+
+      check();
+
+    }
+  );
+
+}
+
+
+/* ============================================================
+   OPEN ANDROID CAMERA
+============================================================ */
+
+async function openAndroidCamera(){
+
+  if(
+    cameraStarting ||
+    busy
+  ){
+
+    return;
+
+  }
+
+
+  cameraStarting = true;
+
+  $('shoot').disabled = true;
+
+
+  setState(
+    'loading',
+    'Đang mở camera...'
+  );
+
+
+  try{
+
+    if(
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ){
+
+      throw new Error(
+        'Telegram không hỗ trợ camera trực tiếp trên thiết bị này.'
+      );
+
+    }
+
+
+    /*
+      Nếu đang có camera,
+      dừng trước khi đổi camera.
+    */
+
+    if(androidStream){
+
+      androidStream
+        .getTracks()
+        .forEach(
+          track => track.stop()
+        );
+
+      androidStream = null;
+
+    }
+
+
+    /*
+      Yêu cầu camera trước hoặc sau.
+    */
+
+    androidStream =
+      await navigator.mediaDevices
+        .getUserMedia({
+
+          video: {
+
+            facingMode: {
+              exact: cameraFacing
+            }
+
+          },
+
+          audio: false
+
+        });
+
+
+    const video =
+      $('android-camera');
+
+
+    video.srcObject =
+      androidStream;
+
+
+    /*
+      Hiển thị camera.
+    */
+
+    $('stage')
+      .classList.add(
+        'android-camera-active'
+      );
+
+
+    /*
+      Camera trước mirror.
+    */
+
+    $('stage')
+      .classList.toggle(
+        'android-front',
+        cameraFacing === 'user'
+      );
+
+
+    $('stage')
+      .classList.toggle(
+        'android-back',
+        cameraFacing === 'environment'
+      );
+
+
+    await video.play();
+
+
+    await waitForVideo(video);
+
+
+    androidCameraReady = true;
+
+    cameraStarting = false;
+
+
+    $('shoot').disabled = false;
+
+
+    updateShootLabel();
+
+
+    setState(
+      'live',
+
+      cameraFacing === 'user'
+
+        ? 'Camera trước đã sẵn sàng.'
+
+        : 'Camera sau đã sẵn sàng.'
+
+    );
+
+
+  }catch(error){
+
+    stopAndroidCamera();
+
+
+    $('shoot').disabled = false;
+
+
+    setState(
+      'live',
+      '❌ Không mở được camera: ' +
+      error.message +
+      ' Hãy kiểm tra quyền camera của Telegram.'
+    );
+
+  }
+
+}
+
+
+/* ============================================================
+   NORMALIZE IMAGE
+============================================================ */
+
+async function normalizeImage(
+  dataUrl
+){
+
+  const image =
+    await new Promise(
+      (resolve, reject) => {
+
+        const img =
+          new Image();
+
+
+        img.onload = () => {
+
+          if(
+            !img.naturalWidth ||
+            !img.naturalHeight
+          ){
+
+            reject(
+              new Error(
+                'Ảnh không có kích thước hợp lệ.'
+              )
+            );
+
+          }else{
+
+            resolve(img);
+
+          }
+
+        };
+
+
+        img.onerror = () => {
+
+          reject(
+            new Error(
+              'Không đọc được ảnh. Hãy chụp lại bằng camera.'
+            )
+          );
+
+        };
+
+
+        img.src = dataUrl;
+
+      }
+    );
+
+
+  /*
+    Giới hạn cạnh dài 1024px.
+  */
+
+  const scale =
+    Math.min(
+      1,
+      1024 /
+      Math.max(
+        image.naturalWidth,
+        image.naturalHeight
+      )
+    );
+
+
+  const canvas =
+    document.createElement(
+      'canvas'
+    );
+
+
+  canvas.width =
+    Math.max(
+      1,
+      Math.round(
+        image.naturalWidth * scale
+      )
+    );
+
+
+  canvas.height =
+    Math.max(
+      1,
+      Math.round(
+        image.naturalHeight * scale
+      )
+    );
+
+
+  const context =
+    canvas.getContext('2d');
+
+
+  if(!context){
+
+    throw new Error(
+      'Không thể xử lý ảnh trên thiết bị này.'
+    );
+
+  }
+
 
   context.drawImage(
     image,
@@ -465,270 +1054,771 @@ async function normalizeImage(dataUrl) {
     canvas.height
   );
 
-  const jpeg = canvas.toDataURL('image/jpeg', 0.8);
 
-  if (
-    !jpeg.startsWith('data:image/jpeg;base64,') ||
+  const jpeg =
+    canvas.toDataURL(
+      'image/jpeg',
+      0.8
+    );
+
+
+  /*
+    Chặn data:, ảnh rỗng
+  */
+
+  if(
+    !jpeg.startsWith(
+      'data:image/jpeg;base64,'
+    ) ||
     jpeg.length < 1000
-  ) {
-    throw new Error('Ảnh không hợp lệ. Vui lòng chụp lại.');
+  ){
+
+    throw new Error(
+      'Ảnh không hợp lệ. Vui lòng chụp lại.'
+    );
+
   }
+
 
   return jpeg;
+
 }
 
-// Xử lý ảnh từ camera hệ thống trên iPhone.
-$('attendance-camera').onchange = async event => {
-  const file = event.target.files?.[0];
 
-  // Người dùng hủy thao tác chụp.
-  if (!file) return;
+/* ============================================================
+   IPHONE / SYSTEM CAMERA
+============================================================ */
 
-  try {
-    if (!file.type.startsWith('image/') || file.size === 0) {
-      throw new Error('Ảnh không hợp lệ. Vui lòng chụp lại.');
+$('attendance-camera').onchange =
+  async event => {
+
+    const file =
+      event.target.files?.[0];
+
+
+    /*
+      Người dùng bấm cancel.
+    */
+
+    if(!file){
+
+      return;
+
     }
 
-    $('shoot').disabled = true;
-    setState('loading', 'Đang xử lý ảnh...');
 
-    const dataUrl = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
+    try{
 
-      reader.onload = () => {
-        if (
-          typeof reader.result !== 'string' ||
-          !reader.result.startsWith('data:image/')
-        ) {
-          reject(new Error('Không đọc được ảnh.'));
-          return;
+      if(
+        !file.type.startsWith(
+          'image/'
+        ) ||
+        file.size === 0
+      ){
+
+        throw new Error(
+          'Ảnh không hợp lệ. Vui lòng chụp lại.'
+        );
+
+      }
+
+
+      $('shoot').disabled = true;
+
+
+      setState(
+        'loading',
+        'Đang xử lý ảnh...'
+      );
+
+
+      /*
+        Đọc ảnh.
+      */
+
+      const dataUrl =
+        await new Promise(
+          (resolve, reject) => {
+
+            const reader =
+              new FileReader();
+
+
+            reader.onload = () => {
+
+              if(
+                typeof reader.result !==
+                'string' ||
+
+                !reader.result.startsWith(
+                  'data:image/'
+                )
+              ){
+
+                reject(
+                  new Error(
+                    'Không đọc được ảnh.'
+                  )
+                );
+
+                return;
+
+              }
+
+
+              resolve(
+                reader.result
+              );
+
+            };
+
+
+            reader.onerror = () => {
+
+              reject(
+                new Error(
+                  'Không đọc được ảnh. Vui lòng thử lại.'
+                )
+              );
+
+            };
+
+
+            reader.readAsDataURL(
+              file
+            );
+
+          }
+        );
+
+
+      /*
+        Chuẩn hóa thành JPEG.
+      */
+
+      photo =
+        await normalizeImage(
+          dataUrl
+        );
+
+
+      $('img').src =
+        photo;
+
+
+      setState(
+        'preview',
+        `Kiểm tra ảnh rồi bấm gửi ${LABEL[type]}`
+      );
+
+
+    }catch(error){
+
+      photo = null;
+
+      $('shoot').disabled = false;
+
+
+      setState(
+        'live',
+        '❌ ' + error.message
+      );
+
+
+    }finally{
+
+      /*
+        Cho phép chụp lại.
+      */
+
+      event.target.value = '';
+
+    }
+
+  };
+
+
+/* ============================================================
+   SWITCH CAMERA
+============================================================ */
+
+$('switch-camera').onclick =
+  async () => {
+
+    if(
+      busy ||
+      cameraStarting
+    ){
+
+      return;
+
+    }
+
+
+    /*
+      Đổi trạng thái:
+      trước <-> sau
+    */
+
+    cameraFacing =
+      cameraFacing === 'user'
+        ? 'environment'
+        : 'user';
+
+
+    updateCameraUI();
+
+
+    /* ==========================
+       ANDROID
+    ========================== */
+
+    if(isAndroid){
+
+      /*
+        Nếu camera đang mở,
+        mở lại với camera mới.
+      */
+
+      if(androidCameraReady){
+
+        await openAndroidCamera();
+
+      }else{
+
+        await openAndroidCamera();
+
+      }
+
+      return;
+
+    }
+
+
+    /* ==========================
+       IPHONE
+    ========================== */
+
+    /*
+      iPhone dùng camera hệ thống.
+      Khi bấm Chụp ảnh tiếp theo,
+      capture sẽ dùng camera mới.
+    */
+
+    setState(
+      'live',
+
+      cameraFacing === 'user'
+
+        ? 'Đã chọn camera trước.'
+
+        : 'Đã chọn camera sau.'
+    );
+
+  };
+
+
+/* ============================================================
+   SHOOT
+============================================================ */
+
+$('shoot').onclick =
+  async () => {
+
+    if(
+      busy ||
+      cameraStarting
+    ){
+
+      return;
+
+    }
+
+
+    if(!tg.initData){
+
+      setState(
+        'error',
+        'Hãy mở Mini App từ Telegram để chấm công.'
+      );
+
+      return;
+
+    }
+
+
+    /* ==========================
+       ANDROID
+    ========================== */
+
+    if(isAndroid){
+
+      /*
+        Chưa mở camera:
+        mở camera trước/sau.
+      */
+
+      if(!androidCameraReady){
+
+        await openAndroidCamera();
+
+        return;
+
+      }
+
+
+      try{
+
+        const video =
+          $('android-camera');
+
+
+        if(
+          !video.videoWidth ||
+          !video.videoHeight
+        ){
+
+          throw new Error(
+            'Camera chưa có hình ảnh. Hãy thử lại.'
+          );
+
         }
 
-        resolve(reader.result);
-      };
 
-      reader.onerror = () => {
-        reject(new Error('Không đọc được ảnh. Vui lòng thử lại.'));
-      };
+        $('shoot').disabled = true;
 
-      reader.readAsDataURL(file);
-    });
 
-    photo = await normalizeImage(dataUrl);
+        /*
+          Resize ảnh.
+        */
 
-    $('img').src = photo;
+        const scale =
+          Math.min(
+            1,
+            1024 /
+            Math.max(
+              video.videoWidth,
+              video.videoHeight
+            )
+          );
 
-    setState(
-      'preview',
-      `Kiểm tra ảnh rồi bấm gửi ${LABEL[type]}`
+
+        const canvas =
+          document.createElement(
+            'canvas'
+          );
+
+
+        canvas.width =
+          Math.max(
+            1,
+            Math.round(
+              video.videoWidth * scale
+            )
+          );
+
+
+        canvas.height =
+          Math.max(
+            1,
+            Math.round(
+              video.videoHeight * scale
+            )
+          );
+
+
+        const context =
+          canvas.getContext('2d');
+
+
+        if(!context){
+
+          throw new Error(
+            'Không thể xử lý ảnh.'
+          );
+
+        }
+
+
+        context.drawImage(
+          video,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+
+
+        const captured =
+          canvas.toDataURL(
+            'image/jpeg',
+            0.8
+          );
+
+
+        /*
+          Chặn ảnh rỗng.
+        */
+
+        if(
+          !captured.startsWith(
+            'data:image/jpeg;base64,'
+          ) ||
+          captured.length < 1000
+        ){
+
+          throw new Error(
+            'Ảnh không hợp lệ. Vui lòng chụp lại.'
+          );
+
+        }
+
+
+        photo =
+          captured;
+
+
+        $('img').src =
+          photo;
+
+
+        /*
+          Dừng camera sau khi chụp.
+        */
+
+        stopAndroidCamera();
+
+
+        setState(
+          'preview',
+          `Kiểm tra ảnh rồi bấm gửi ${LABEL[type]}`
+        );
+
+
+      }catch(error){
+
+        $('shoot').disabled =
+          false;
+
+
+        setState(
+          'live',
+          '❌ ' + error.message
+        );
+
+      }
+
+
+      return;
+
+    }
+
+
+    /* ==========================
+       IPHONE
+    ========================== */
+
+    const input =
+      $('attendance-camera');
+
+
+    /*
+      Camera trước hoặc sau
+      tùy trạng thái hiện tại.
+    */
+
+    input.setAttribute(
+      'capture',
+      cameraFacing
     );
-  } catch (error) {
-    photo = null;
-    $('shoot').disabled = false;
 
-    setState('live', '❌ ' + error.message);
-  } finally {
-    event.target.value = '';
-  }
-};
 
-// Nút chụp ảnh.
-$('shoot').onclick = async () => {
-  if (busy || cameraStarting) return;
-
-  if (!tg.initData) {
-    setState(
-      'error',
-      'Hãy mở Mini App từ Telegram để chấm công.'
-    );
-    return;
-  }
-
-  // iPhone: giữ phương pháp camera hệ thống đã hoạt động.
-  if (!isAndroid) {
-    const input = $('attendance-camera');
-
-    input.setAttribute('capture', 'user');
     input.value = '';
+
+
+    /*
+      Mở camera hệ thống iPhone.
+    */
+
     input.click();
 
-    return;
-  }
+  };
 
-  // Android: lần đầu mở camera.
-  if (!androidCameraReady) {
-    await openAndroidCamera();
-    return;
-  }
 
-  // Android: lần tiếp theo chụp ảnh từ video.
-  try {
-    const video = $('android-camera');
+/* ============================================================
+   RETAKE
+============================================================ */
 
-    if (!video.videoWidth || !video.videoHeight) {
-      throw new Error('Camera chưa có hình ảnh. Hãy thử lại.');
-    }
+$('retake').onclick =
+  () => {
 
-    $('shoot').disabled = true;
+    if(busy) return;
 
-    const scale = Math.min(
-      1,
-      1024 / Math.max(video.videoWidth, video.videoHeight)
-    );
 
-    const canvas = document.createElement('canvas');
+    photo = null;
 
-    canvas.width = Math.max(
-      1,
-      Math.round(video.videoWidth * scale)
-    );
-    canvas.height = Math.max(
-      1,
-      Math.round(video.videoHeight * scale)
-    );
 
-    const context = canvas.getContext('2d');
+    $('img')
+      .removeAttribute('src');
 
-    if (!context) {
-      throw new Error('Không thể xử lý ảnh.');
-    }
-
-    context.drawImage(
-      video,
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-
-    const captured = canvas.toDataURL('image/jpeg', 0.8);
-
-    if (
-      !captured.startsWith('data:image/jpeg;base64,') ||
-      captured.length < 1000
-    ) {
-      throw new Error('Ảnh không hợp lệ. Vui lòng chụp lại.');
-    }
-
-    photo = captured;
-    $('img').src = photo;
 
     stopAndroidCamera();
 
-    setState(
-      'preview',
-      `Kiểm tra ảnh rồi bấm gửi ${LABEL[type]}`
+
+    $('send').disabled =
+      false;
+
+
+    $('retake').disabled =
+      false;
+
+
+    $('shoot').disabled =
+      false;
+
+
+    showLive(
+      isAndroid
+
+        ? 'Nhấn Chụp ảnh để mở camera.'
+
+        : 'Nhấn Chụp ảnh để chụp lại.'
     );
-  } catch (error) {
-    $('shoot').disabled = false;
-    setState('live', '❌ ' + error.message);
-  }
-};
 
-// Chụp lại.
-$('retake').onclick = () => {
-  if (busy) return;
+  };
 
-  photo = null;
-  $('img').removeAttribute('src');
 
-  stopAndroidCamera();
+/* ============================================================
+   SHOW LIVE
+============================================================ */
 
-  $('retake').disabled = false;
-  $('send').disabled = false;
+function showLive(
+  message
+){
 
-  showLive(
-    isAndroid
-      ? 'Nhấn Mở camera để chụp lại.'
-      : 'Nhấn Chụp ảnh để chụp lại.'
+  $('img')
+    .removeAttribute('src');
+
+
+  $('shoot').disabled =
+    false;
+
+
+  updateShootLabel();
+
+
+  setState(
+    'live',
+    message ||
+    'Sẵn sàng chấm công.'
   );
-};
 
-// Gửi ảnh đến n8n.
-$('send').onclick = async () => {
-  if (busy) return;
-
-  if (
-    !photo ||
-    !photo.startsWith('data:image/jpeg;base64,') ||
-    photo.length < 1000
-  ) {
-    setState('live', 'Vui lòng chụp ảnh hợp lệ trước khi gửi.');
-    return;
-  }
-
-  busy = true;
-  $('send').disabled = true;
-  $('retake').disabled = true;
-
-  setState('preview', 'Đang gửi dữ liệu chấm công...');
-
-  try {
-    const response = await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        initData: tg.initData,
-        image: photo,
-        type: type
-      })
-    });
-
-    const result = await response.json();
-
-    if (!response.ok || !result.ok) {
-      throw new Error(
-        result.error || 'Gửi chấm công thất bại.'
-      );
-    }
-
-    stopAndroidCamera();
-
-    setState(
-      'done',
-      `✅ Đã ${LABEL[type]} lúc ${
-        result.time ||
-        new Date().toLocaleTimeString('vi-VN', {
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: 'Asia/Ho_Chi_Minh'
-        })
-      }`
-    );
-
-    setTimeout(() => tg.close(), 1500);
-  } catch (error) {
-    busy = false;
-
-    $('send').disabled = false;
-    $('retake').disabled = false;
-
-    setState(
-      'preview',
-      '❌ Gửi thất bại: ' + error.message
-    );
-  }
-};
-
-// Không tự bật camera khi mở Mini App.
-if (!tg.initData) {
-  setState('error', 'Hãy mở Mini App từ Telegram để chấm công.');
-} else {
-  showLive(
-    isAndroid
-      ? 'Nhấn Mở camera để bắt đầu chấm công.'
-      : 'Nhấn Chụp ảnh để bắt đầu chấm công.'
-  );
 }
 
-// Dừng camera nếu Mini App bị đóng.
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && androidStream) {
-    stopAndroidCamera();
+
+/* ============================================================
+   SEND
+============================================================ */
+
+$('send').onclick =
+  async () => {
+
+    if(busy) return;
+
+
+    /*
+      Không cho gửi ảnh rỗng.
+    */
+
+    if(
+      !photo ||
+
+      !photo.startsWith(
+        'data:image/jpeg;base64,'
+      ) ||
+
+      photo.length < 1000
+    ){
+
+      setState(
+        'live',
+        'Vui lòng chụp ảnh hợp lệ trước khi gửi.'
+      );
+
+      return;
+
+    }
+
+
+    busy = true;
+
+
+    $('send').disabled =
+      true;
+
+    $('retake').disabled =
+      true;
+
+
+    setState(
+      'preview',
+      'Đang gửi dữ liệu chấm công...'
+    );
+
+
+    try{
+
+      const response =
+        await fetch(
+          WEBHOOK_URL,
+          {
+            method:'POST',
+
+            headers:{
+              'Content-Type':
+                'application/json'
+            },
+
+            body:JSON.stringify({
+
+              initData:
+                tg.initData,
+
+              image:
+                photo,
+
+              type:
+                type
+
+            })
+
+          }
+        );
+
+
+      const result =
+        await response.json();
+
+
+      if(
+        !response.ok ||
+        !result.ok
+      ){
+
+        throw new Error(
+          result.error ||
+          'Gửi chấm công thất bại.'
+        );
+
+      }
+
+
+      /*
+        Đảm bảo camera đã dừng.
+      */
+
+      stopAndroidCamera();
+
+
+      setState(
+        'done',
+
+        `✅ Đã ${LABEL[type]} lúc ${
+          result.time ||
+
+          new Date()
+            .toLocaleTimeString(
+              'vi-VN',
+              {
+                hour:'2-digit',
+                minute:'2-digit',
+                timeZone:
+                  'Asia/Ho_Chi_Minh'
+              }
+            )
+        }`
+      );
+
+
+      setTimeout(
+        () => tg.close(),
+        1500
+      );
+
+
+    }catch(error){
+
+      busy = false;
+
+
+      $('send').disabled =
+        false;
+
+      $('retake').disabled =
+        false;
+
+
+      setState(
+        'preview',
+
+        '❌ Gửi thất bại: ' +
+        error.message
+      );
+
+    }
+
+  };
+
+
+/* ============================================================
+   INITIALIZE
+============================================================ */
+
+updateCameraUI();
+
+updateShootLabel();
+
+
+if(!tg.initData){
+
+  setState(
+    'error',
+    'Hãy mở Mini App từ Telegram để chấm công.'
+  );
+
+}else{
+
+  showLive(
+    isAndroid
+
+      ? 'Nhấn Chụp ảnh để mở camera.'
+
+      : 'Nhấn Chụp ảnh để bắt đầu chấm công.'
+  );
+
+}
+
+
+/* ============================================================
+   STOP CAMERA WHEN MINI APP HIDDEN
+============================================================ */
+
+document.addEventListener(
+  'visibilitychange',
+  () => {
+
+    if(
+      document.hidden &&
+      androidStream
+    ){
+
+      stopAndroidCamera();
+
+    }
+
   }
-});
+);
+
 </script>
 
 </body>
