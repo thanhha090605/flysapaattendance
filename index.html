@@ -596,6 +596,21 @@ document
    START PARAM
 ============================================================ */
 
+/*
+  Link ngoài Telegram: ?t=<token riêng của nhân viên>
+  Dùng cho người không vào được Telegram. n8n tra token trong
+  bảng Employees để biết user_id/tên; ảnh vẫn được bot đăng vào nhóm.
+*/
+
+const staffToken =
+  new URLSearchParams(
+    location.search
+  ).get('t') || '';
+
+const hasAuth =
+  !!(tg.initData || staffToken);
+
+
 const queryType =
 
   new URLSearchParams(
@@ -1336,11 +1351,11 @@ $('shoot').onclick =
     }
 
 
-    if(!tg.initData){
+    if(!hasAuth){
 
       setState(
         'error',
-        'Hãy mở Mini App từ Telegram để chấm công.'
+        'Hãy mở bằng link chấm công của bạn (Telegram hoặc link riêng).'
       );
 
       return;
@@ -1683,7 +1698,10 @@ $('send').onclick =
             body:JSON.stringify({
 
               initData:
-                tg.initData,
+                tg.initData || '',
+
+              token:
+                staffToken,
 
               image:
                 photo,
@@ -1795,11 +1813,11 @@ updateCameraUI();
 updateShootLabel();
 
 
-if(!tg.initData){
+if(!hasAuth){
 
   setState(
     'error',
-    'Hãy mở Mini App từ Telegram để chấm công.'
+    'Hãy mở bằng link chấm công của bạn (Telegram hoặc link riêng).'
   );
 
 }else{
