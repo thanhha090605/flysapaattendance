@@ -2266,9 +2266,14 @@ $('send').onclick =
         `✅ Đã ${LABEL[type]} lúc ${fallbackTime}`;
 
 
+      const dmWarn =
+        result.dm_failed
+          ? '\n\n⚠️ Bot chưa nhắn riêng được cho bạn. Mở @FlySapaAttendanceBot và bấm Start để lần sau nhận ảnh/kết quả riêng.'
+          : '';
+
       setState(
         'done',
-        `${doneMessage}\n(${fallbackTime})`
+        `${doneMessage}\n(${fallbackTime})${dmWarn}`
       );
 
 
@@ -2278,7 +2283,7 @@ $('send').onclick =
 
       setTimeout(
         () => tg.close(),
-        result.message ? 6000 : 1500
+        result.dm_failed ? 12000 : (result.message ? 6000 : 1500)
       );
 
 
