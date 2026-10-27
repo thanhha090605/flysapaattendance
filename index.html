@@ -1426,12 +1426,53 @@ async function openAndroidCamera(){
     $('shoot').disabled = false;
 
 
-    setState(
-      'live',
-      '⚠️ Camera trong app không mở được (' +
-      (error && (error.name || error.message) || 'lỗi') +
-      '). Bấm "Chụp ảnh" để dùng camera của máy.'
-    );
+    const denied =
+      !!error &&
+      (
+        error.name === 'NotAllowedError' ||
+        error.name === 'SecurityError'
+      );
+
+    if(denied){
+
+      /*
+        Trình duyệt chặn quyền camera: mở luôn camera của máy
+        (cách này không cần quyền riêng cho trang).
+      */
+
+      try{
+
+        const input =
+          $('attendance-camera');
+
+        input.setAttribute(
+          'capture',
+          cameraFacing
+        );
+
+        input.value = '';
+
+        input.click();
+
+      }catch(e){}
+
+      setState(
+        'live',
+        'Trình duyệt đang chặn camera trong app nên app dùng camera của máy. ' +
+        'Nếu chưa thấy camera mở, bấm "Chụp ảnh". ' +
+        '(Muốn chụp ngay trong app: bấm biểu tượng ổ khóa cạnh địa chỉ trang > Quyền > Camera > Cho phép.)'
+      );
+
+    }else{
+
+      setState(
+        'live',
+        'Camera trong app không mở được (' +
+        (error && (error.name || error.message) || 'lỗi') +
+        '). Bấm "Chụp ảnh" để dùng camera của máy.'
+      );
+
+    }
 
   }
 
