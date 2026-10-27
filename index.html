@@ -74,8 +74,8 @@ h1{
 
 .modes button{
   flex:1;
-  font-size:15px;
-  padding:10px;
+  font-size:14px;
+  padding:10px 4px;
   border-radius:11px;
   background:transparent;
   color:var(--hint);
@@ -85,6 +85,84 @@ h1{
 .modes button.active{
   background:var(--btn);
   color:var(--btx);
+}
+
+/* =========================
+   XIN NGHỈ
+========================= */
+
+#offform{
+  display:none;
+  flex-direction:column;
+  gap:10px;
+  flex:1;
+}
+
+#offform label{
+  font-size:13px;
+  color:var(--hint);
+  display:block;
+  margin-bottom:4px;
+}
+
+#offform input,
+#offform select,
+#offform textarea{
+  width:100%;
+  font-size:16px;
+  padding:12px;
+  border:1px solid var(--sec);
+  border-radius:12px;
+  background:var(--sec);
+  color:var(--tx);
+  font-family:inherit;
+}
+
+#offform textarea{
+  resize:none;
+}
+
+#off-note{
+  font-size:13px;
+  line-height:1.5;
+  padding:10px 12px;
+  border-radius:12px;
+  background:var(--sec);
+  color:var(--tx);
+  display:none;
+}
+
+#off-msg{
+  text-align:center;
+  font-size:14px;
+  line-height:1.5;
+  white-space:pre-line;
+  overflow-wrap:anywhere;
+  color:var(--hint);
+}
+
+#off-msg.err{
+  color:#d33;
+}
+
+#off-msg.ok{
+  color:var(--tx);
+}
+
+[data-view="off"] #offform{
+  display:flex;
+}
+
+#off-send{
+  flex:0 0 auto;
+}
+
+[data-view="off"] .stage,
+[data-view="off"] .r1,
+[data-view="off"] .r2,
+[data-view="off"] .r3,
+[data-view="off"] #msg{
+  display:none;
 }
 
 /* =========================
@@ -318,6 +396,61 @@ button:disabled{
     🔴 Check-out
   </button>
 
+  <button
+    type="button"
+    data-type="off"
+  >
+    📝 Xin nghỉ
+  </button>
+
+</div>
+
+
+<!-- =========================
+     XIN NGHỈ / BÁO OFF
+========================= -->
+
+<div id="offform">
+
+  <div>
+    <label for="off-date">Ngày nghỉ</label>
+    <input id="off-date" type="date">
+  </div>
+
+  <div>
+    <label for="off-kind">Loại nghỉ</label>
+    <select id="off-kind">
+      <option value="Nghỉ phép">Nghỉ phép</option>
+      <option value="Nghỉ ốm">Nghỉ ốm</option>
+      <option value="Việc riêng">Việc riêng</option>
+      <option value="Mưa/mù">Mưa / mù</option>
+    </select>
+  </div>
+
+  <div id="off-note">
+    Ngày mưa/mù: mỗi người có số ngày nghỉ quy chuẩn không lương mỗi chu kỳ.
+    Hết hạn mức, ngày mưa/mù vẫn được tính công nếu bạn có mặt (stand by) tại
+    vị trí làm việc, vắng mặt thì không lương.
+    Công việc do công ty phân công: VP làm hành chính, phát triển thị trường;
+    LX bảo dưỡng, sửa chữa xe; Support kiểm tra thiết bị, sửa chữa bãi.
+  </div>
+
+  <div>
+    <label for="off-reason">Lý do (bắt buộc)</label>
+    <textarea
+      id="off-reason"
+      rows="3"
+      maxlength="300"
+      placeholder="Ví dụ: có việc gia đình..."
+    ></textarea>
+  </div>
+
+  <div id="off-msg"></div>
+
+  <button id="off-send" type="button">
+    Gửi đơn xin nghỉ
+  </button>
+
 </div>
 
 
@@ -433,6 +566,9 @@ button:disabled{
 
 const WEBHOOK_URL =
   'https://flysapa.app.n8n.cloud/webhook/checkin';
+
+const OFF_URL =
+  'https://flysapa.app.n8n.cloud/webhook/off';
 
 
 /* ============================================================
@@ -636,6 +772,16 @@ document
 
       if(busy) return;
 
+      if(button.dataset.type === 'off'){
+
+        showOffView(true);
+
+        return;
+
+      }
+
+      showOffView(false);
+
       setType(
         button.dataset.type
       );
@@ -643,6 +789,187 @@ document
     };
 
   });
+
+
+/* ============================================================
+   XIN NGHỈ / BÁO OFF
+============================================================ */
+
+function vnToday(){
+
+  return new Date(
+    Date.now() + 7 * 3600 * 1000
+  ).toISOString().slice(0, 10);
+
+}
+
+function setOffMsg(text, cls){
+
+  const el = $('off-msg');
+
+  el.textContent = text || '';
+
+  el.className = cls || '';
+
+}
+
+function showOffView(on){
+
+  document.body.dataset.view =
+    on ? 'off' : '';
+
+  document
+    .querySelectorAll('#modes button')
+    .forEach(button => {
+
+      if(on){
+
+        button.classList.toggle(
+          'active',
+          button.dataset.type === 'off'
+        );
+
+      }
+
+    });
+
+  if(on){
+
+    stopAndroidCamera();
+
+    const input = $('off-date');
+
+    const today = vnToday();
+
+    input.min = today;
+
+    if(!input.value || input.value < today){
+
+      input.value = today;
+
+    }
+
+    setOffMsg('');
+
+    updateOffNote();
+
+  }
+
+}
+
+function updateOffNote(){
+
+  $('off-note').style.display =
+    $('off-kind').value === 'Mưa/mù'
+      ? 'block'
+      : 'none';
+
+}
+
+$('off-kind').onchange = updateOffNote;
+
+$('off-send').onclick =
+  async () => {
+
+    if(busy) return;
+
+    if(!hasAuth){
+
+      setOffMsg(
+        'Hãy mở bằng link chấm công của bạn (Telegram hoặc link riêng).',
+        'err'
+      );
+
+      return;
+
+    }
+
+    const date = $('off-date').value;
+
+    const kind = $('off-kind').value;
+
+    const reason = $('off-reason').value.trim();
+
+    if(!date){
+
+      setOffMsg('Hãy chọn ngày nghỉ.', 'err');
+
+      return;
+
+    }
+
+    if(reason.length < 3){
+
+      setOffMsg('Vui lòng nhập lý do nghỉ.', 'err');
+
+      return;
+
+    }
+
+    busy = true;
+
+    $('off-send').disabled = true;
+
+    setOffMsg('Đang gửi đơn...');
+
+    try{
+
+      const response =
+        await fetch(
+          OFF_URL,
+          {
+            method:'POST',
+
+            headers:{
+              'Content-Type':
+                'application/json'
+            },
+
+            body:JSON.stringify({
+              initData: tg.initData || '',
+              token: staffToken,
+              date,
+              kind,
+              reason
+            })
+          }
+        );
+
+      const result =
+        await response.json();
+
+      if(
+        !response.ok ||
+        !result.ok
+      ){
+
+        throw new Error(
+          result.error ||
+          'Gửi đơn thất bại.'
+        );
+
+      }
+
+      setOffMsg(result.message, 'ok');
+
+      $('off-reason').value = '';
+
+    }catch(error){
+
+      setOffMsg(
+        '❌ ' + error.message,
+        'err'
+      );
+
+    }finally{
+
+      busy = false;
+
+      $('off-send').disabled = false;
+
+    }
+
+  };
 
 
 /* ============================================================
@@ -681,6 +1008,10 @@ if(
 ){
 
   setType(queryType);
+
+}else if(queryType === 'off'){
+
+  showOffView(true);
 
 }
 
