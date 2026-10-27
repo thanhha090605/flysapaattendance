@@ -165,6 +165,26 @@ h1{
   white-space:pre-line;
 }
 
+#dmhint{
+  display:none;
+  text-align:center;
+  font-size:13px;
+  line-height:1.5;
+  padding:8px 10px;
+  border-radius:10px;
+  background:var(--sec);
+  color:var(--tx);
+}
+
+.link-btn{
+  flex:1;
+  font-size:14px;
+  padding:10px;
+  background:transparent;
+  color:var(--hint);
+  text-decoration:underline;
+}
+
 /* =========================
    BUTTONS
 ========================= */
@@ -247,6 +267,10 @@ button:disabled{
 
 [data-state="live"] .r2,
 [data-state="loading"] .r1,
+[data-state="loading"] .r3,
+[data-state="preview"] .r3,
+[data-state="done"] .r3,
+[data-state="error"] .r3,
 [data-state="loading"] .r2,
 [data-state="preview"] .r1,
 [data-state="done"] .r1,
@@ -325,6 +349,8 @@ button:disabled{
 
 <div id="msg"></div>
 
+<div id="dmhint"></div>
+
 
 <!-- =========================
      CAMERA CONTROL
@@ -346,6 +372,18 @@ button:disabled{
     type="button"
   >
     📸 Chụp ảnh check-in
+  </button>
+
+</div>
+
+<div class="row r3">
+
+  <button
+    id="sys-camera"
+    type="button"
+    class="link-btn"
+  >
+    Camera không lên? Dùng camera của máy
   </button>
 
 </div>
@@ -428,6 +466,21 @@ const LABEL = {
 const isAndroid =
   /Android/i.test(navigator.userAgent);
 
+/*
+  Camera trực tiếp (getUserMedia) dùng cho cả Android và iPhone.
+  Nếu không mở được (hoặc hình đen) thì chuyển sang camera hệ thống
+  (input capture) - xem liveFailed.
+*/
+
+let liveFailed = false;
+
+const canLive = () =>
+  !liveFailed &&
+  !!(
+    navigator.mediaDevices &&
+    navigator.mediaDevices.getUserMedia
+  );
+
 
 /* ============================================================
    STATE
@@ -509,7 +562,7 @@ function updateCameraUI(){
 function updateShootLabel(){
 
   if(
-    isAndroid &&
+    canLive() &&
     !androidCameraReady
   ){
 
@@ -558,7 +611,7 @@ function setType(newType){
   ){
 
     $('msg').textContent =
-      isAndroid && !androidCameraReady
+      canLive() && !androidCameraReady
 
         ? 'Nhấn Mở camera để chụp ảnh ' +
           LABEL[type]
@@ -628,6 +681,45 @@ if(
 ){
 
   setType(queryType);
+
+}
+
+
+/* ============================================================
+   BLACK FRAME CHECK
+============================================================ */
+
+function isBlackFrame(canvas){
+
+  try{
+
+    const small = document.createElement('canvas');
+
+    small.width = 16;
+
+    small.height = 16;
+
+    const ctx = small.getContext('2d');
+
+    ctx.drawImage(canvas, 0, 0, 16, 16);
+
+    const data = ctx.getImageData(0, 0, 16, 16).data;
+
+    let sum = 0;
+
+    for(let i = 0; i < data.length; i += 4){
+
+      sum += data[i] + data[i + 1] + data[i + 2];
+
+    }
+
+    return sum < 16 * 16 * 3 * 4;
+
+  }catch(e){
+
+    return false;
+
+  }
 
 }
 
@@ -851,28 +943,80 @@ async function openAndroidCamera(){
 
     /*
       Yêu cầu camera trước hoặc sau.
+      KHÔNG dùng facingMode.exact vì nhiều máy Android/iPhone
+      báo OverconstrainedError. Thử lần lượt từ chặt đến lỏng.
     */
 
-    androidStream =
-      await navigator.mediaDevices
-        .getUserMedia({
+    const attempts = [
 
-          video: {
+      {
+        video:{
+          facingMode:{ ideal:cameraFacing },
+          width:{ ideal:1280 },
+          height:{ ideal:720 }
+        },
+        audio:false
+      },
 
-            facingMode: {
-              exact: cameraFacing
-            }
+      {
+        video:{ facingMode:cameraFacing },
+        audio:false
+      },
 
-          },
+      {
+        video:true,
+        audio:false
+      }
 
-          audio: false
+    ];
 
-        });
+    let lastError = null;
+
+    for(const constraints of attempts){
+
+      try{
+
+        androidStream =
+          await navigator.mediaDevices
+            .getUserMedia(constraints);
+
+        break;
+
+      }catch(err){
+
+        lastError = err;
+
+        /* Bị từ chối quyền thì thử lại cũng vô ích */
+
+        if(
+          err &&
+          (
+            err.name === 'NotAllowedError' ||
+            err.name === 'SecurityError'
+          )
+        ){
+          break;
+        }
+
+      }
+
+    }
+
+    if(!androidStream){
+      throw lastError ||
+        new Error('Không mở được camera.');
+    }
 
 
     const video =
       $('android-camera');
 
+
+    video.muted = true;
+
+    video.setAttribute('playsinline','');
+
+    video.setAttribute('webkit-playsinline','');
 
     video.srcObject =
       androidStream;
@@ -939,15 +1083,23 @@ async function openAndroidCamera(){
 
     stopAndroidCamera();
 
+    /*
+      Chuyển sang camera hệ thống để nhân viên vẫn chấm công được.
+    */
+
+    liveFailed = true;
+
+    updateShootLabel();
+
 
     $('shoot').disabled = false;
 
 
     setState(
       'live',
-      '❌ Không mở được camera: ' +
-      error.message +
-      ' Hãy kiểm tra quyền camera của Telegram.'
+      '⚠️ Camera trong app không mở được (' +
+      (error && (error.name || error.message) || 'lỗi') +
+      '). Bấm "Chụp ảnh" để dùng camera của máy.'
     );
 
   }
@@ -1289,7 +1441,7 @@ $('switch-camera').onclick =
        ANDROID
     ========================== */
 
-    if(isAndroid){
+    if(canLive()){
 
       /*
         Nếu camera đang mở,
@@ -1367,7 +1519,7 @@ $('shoot').onclick =
        ANDROID
     ========================== */
 
-    if(isAndroid){
+    if(canLive()){
 
       /*
         Chưa mở camera:
@@ -1490,6 +1642,25 @@ $('shoot').onclick =
         }
 
 
+        /*
+          Chặn ảnh đen (một số máy mở được camera nhưng hình đen).
+        */
+
+        if(isBlackFrame(canvas)){
+
+          stopAndroidCamera();
+
+          liveFailed = true;
+
+          updateShootLabel();
+
+          throw new Error(
+            'Hình camera bị đen. Bấm Chụp ảnh lần nữa để dùng camera của máy.'
+          );
+
+        }
+
+
         photo =
           captured;
 
@@ -1594,7 +1765,7 @@ $('retake').onclick =
 
 
     showLive(
-      isAndroid
+      canLive()
 
         ? 'Nhấn Chụp ảnh để mở camera.'
 
@@ -1805,6 +1976,94 @@ $('send').onclick =
 
 
 /* ============================================================
+   SYSTEM CAMERA BUTTON
+============================================================ */
+
+$('sys-camera').onclick =
+  () => {
+
+    if(busy || cameraStarting) return;
+
+    liveFailed = true;
+
+    stopAndroidCamera();
+
+    updateShootLabel();
+
+    const input = $('attendance-camera');
+
+    input.setAttribute('capture', cameraFacing);
+
+    input.value = '';
+
+    input.click();
+
+  };
+
+
+/* ============================================================
+   CHO PHÉP BOT NHẮN RIÊNG
+============================================================ */
+
+/*
+  Bot chỉ nhắn riêng được cho người đã Start bot hoặc đã cho phép.
+  Nếu initData báo allows_write_to_pm != true thì hỏi quyền ngay
+  (hộp thoại của Telegram).
+*/
+
+function showDmHint(text){
+
+  const el = $('dmhint');
+
+  el.textContent = text;
+
+  el.style.display = text ? 'block' : 'none';
+
+}
+
+(function askDmAccess(){
+
+  try{
+
+    const user = tg.initDataUnsafe && tg.initDataUnsafe.user;
+
+    if(!user || user.allows_write_to_pm === true) return;
+
+    if(
+      typeof tg.requestWriteAccess !== 'function' ||
+      (tg.isVersionAtLeast && !tg.isVersionAtLeast('6.9'))
+    ){
+
+      showDmHint(
+        'Để nhận kết quả chấm công qua tin nhắn riêng: mở chat với bot chấm công và bấm Start.'
+      );
+
+      return;
+
+    }
+
+    setTimeout(() => {
+
+      tg.requestWriteAccess(granted => {
+
+        if(!granted){
+
+          showDmHint(
+            'Bạn chưa cho phép bot nhắn riêng nên ảnh/kết quả sẽ hiện ở nhóm. Mở chat với bot chấm công và bấm Start để nhận riêng.'
+          );
+
+        }
+
+      });
+
+    }, 600);
+
+  }catch(e){}
+
+})();
+
+
+/* ============================================================
    INITIALIZE
 ============================================================ */
 
@@ -1823,7 +2082,7 @@ if(!hasAuth){
 }else{
 
   showLive(
-    isAndroid
+    canLive()
 
       ? 'Nhấn Chụp ảnh để mở camera.'
 
