@@ -1460,7 +1460,8 @@ async function openAndroidCamera(){
         'live',
         'Trình duyệt đang chặn camera trong app nên app dùng camera của máy. ' +
         'Nếu chưa thấy camera mở, bấm "Chụp ảnh". ' +
-        '(Muốn chụp ngay trong app: bấm biểu tượng ổ khóa cạnh địa chỉ trang > Quyền > Camera > Cho phép.)'
+        '(Muốn chụp ngay trong app: bấm biểu tượng ổ khóa cạnh địa chỉ trang > Quyền > Camera > Cho phép.) ' +
+        'Vẫn không chụp được? Đóng app, chụp ảnh bằng camera Telegram và gửi vào chat với @FlySapaAttendanceBot kèm chú thích "in" hoặc "out".'
       );
 
     }else{
@@ -1469,7 +1470,8 @@ async function openAndroidCamera(){
         'live',
         'Camera trong app không mở được (' +
         (error && (error.name || error.message) || 'lỗi') +
-        '). Bấm "Chụp ảnh" để dùng camera của máy.'
+        '). Bấm "Chụp ảnh" để dùng camera của máy. ' +
+        'Vẫn không được? Gửi ảnh chụp bằng camera Telegram vào chat với @FlySapaAttendanceBot kèm chú thích "in" hoặc "out".'
       );
 
     }
